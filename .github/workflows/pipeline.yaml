@@ -16,29 +16,37 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    # Install Trivy
+    # ✅ Install Trivy (FIXED)
     - name: Install Trivy
       run: |
         sudo apt-get update
-        sudo apt-get install -y wget
-        wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.0_Linux-64bit.deb
-        sudo dpkg -i trivy_0.50.0_Linux-64bit.deb
+        sudo apt-get install -y wget gnupg lsb-release
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update
+        sudo apt-get install -y trivy
 
-    # Scan Code
+    # 🔍 Scan Code (Filesystem)
     - name: Scan Filesystem
-      run: trivy fs . --exit-code 1 --severity HIGH,CRITICAL
+      run: |
+        trivy fs . --severity HIGH,CRITICAL --exit-code 1
 
-    # Build Image
+    # 🐳 Build Docker Image
     - name: Build Docker Image
-      run: docker build -t ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest .
+      run: |
+        docker build -t ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest .
 
-    # Scan Image
+    # 🔍 Scan Docker Image
     - name: Scan Image
-      run: trivy image ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest --exit-code 1
+      run: |
+        trivy image ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest --severity HIGH,CRITICAL --exit-code 1
 
-    # Push Image
+    # 🔐 Docker Login
     - name: Docker Login
-      run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+      run: |
+        echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
 
+    # 📤 Push Image
     - name: Push Image
-      run: docker push ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest
+      run: |
+        docker push ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest
