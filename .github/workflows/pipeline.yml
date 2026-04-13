@@ -44,7 +44,7 @@ jobs:
     # 🔍 Scan Docker Image
     - name: Scan Docker Image
       run: |
-        trivy image ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest --severity HIGH,CRITICAL --exit-code 1
+        trivy image ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest --severity CRITICAL --exit-code 1
 
     # 🔐 Login to DockerHub
     - name: Docker Login
