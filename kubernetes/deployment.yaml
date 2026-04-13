@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: devsecops-container
-        image: YOUR_DOCKERHUB_USERNAME/devsecops-app:latest
+        image: priyankapawar832/devsecops-app:latest
         ports:
         - containerPort: 5000
         securityContext:

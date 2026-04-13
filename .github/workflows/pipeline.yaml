@@ -1,4 +1,4 @@
-name: DevSecOps CI/CD Pipeline
+name: DevSecOps AWS Pipeline
 
 on:
   push:
@@ -9,42 +9,36 @@ env:
   IMAGE_NAME: devsecops-app
 
 jobs:
-  build-scan-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 📥 Checkout Code
+    - name: Checkout
       uses: actions/checkout@v3
 
-    # 🔍 Install Trivy
-    - name: 🔍 Install Trivy
+    # Install Trivy
+    - name: Install Trivy
       run: |
         sudo apt-get update
-        sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+        sudo apt-get install -y wget
         wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.0_Linux-64bit.deb
         sudo dpkg -i trivy_0.50.0_Linux-64bit.deb
 
-    # 🔍 Scan Repository (Filesystem Scan)
-    - name: 🔍 Scan Filesystem
-      run: |
-        trivy fs . --severity HIGH,CRITICAL --exit-code 1
+    # Scan Code
+    - name: Scan Filesystem
+      run: trivy fs . --exit-code 1 --severity HIGH,CRITICAL
 
-    # 🐳 Build Docker Image
-    - name: 🐳 Build Docker Image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest .
+    # Build Image
+    - name: Build Docker Image
+      run: docker build -t ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest .
 
-    # 🔍 Scan Docker Image
-    - name: 🔍 Scan Docker Image
-      run: |
-        trivy image ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest --severity HIGH,CRITICAL --exit-code 1
+    # Scan Image
+    - name: Scan Image
+      run: trivy image ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest --exit-code 1
 
-    # 🔐 Login to Docker Hub
-    - name: 🔐 Docker Login
-      run: |
-        echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+    # Push Image
+    - name: Docker Login
+      run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
 
-    # 📤 Push Docker Image
-    - name: 📤 Push Image
-      run: |
-        docker push ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest
+    - name: Push Image
+      run: docker push ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest
