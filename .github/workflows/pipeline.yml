@@ -13,9 +13,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 📥 Checkout code
     - name: Checkout
       uses: actions/checkout@v4
 
+    # 🐞 Debug Docker username (temporary - helps troubleshooting)
+    - name: Debug Docker Username
+      run: echo "Docker user is ${{ secrets.DOCKER_USER }}"
+
+    # 🔐 Install Trivy (stable method)
     - name: Install Trivy
       run: |
         sudo apt-get update
@@ -25,17 +31,27 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y trivy
 
+    # 🔍 Scan source code
     - name: Scan Filesystem
-      run: trivy fs . --severity HIGH,CRITICAL --exit-code 1
+      run: |
+        trivy fs . --severity HIGH,CRITICAL --exit-code 1
 
+    # 🐳 Build Docker Image
     - name: Build Docker Image
-      run: docker build -t ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest .
+      run: |
+        docker build -t ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest .
 
-    - name: Scan Image
-      run: trivy image ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest --severity HIGH,CRITICAL --exit-code 1
+    # 🔍 Scan Docker Image
+    - name: Scan Docker Image
+      run: |
+        trivy image ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest --severity HIGH,CRITICAL --exit-code 1
 
+    # 🔐 Login to DockerHub
     - name: Docker Login
-      run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+      run: |
+        echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
 
+    #  Push Docker Image
     - name: Push Image
-      run: docker push ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest
+      run: |
+        docker push ${{ secrets.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest
